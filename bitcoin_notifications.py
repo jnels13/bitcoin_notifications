@@ -1,18 +1,14 @@
 # Project from https://realpython.com/python-bitcoin-ifttt/
-import requests, os
+import requests, os, time
+from datetime import datetime
 
-# Pull the Zapier key
-working_dir = os.getcwd()
-with open(working_dir+"/Documents/Python_Projects/Bitcoin_Notifications/bitcoin_notifications/zapier_key_url.txt", 'r') as file:
-    zap_key = file.read()
-
-# Request webhook previously set up on Zapier
-zap_webhook_url = zap_key
-#requests.post(zap_webhook_url)
-
+# Pull the IFTTT key and insert into URL
+with open("/Users/joenelson/Documents/Python_Projects/Bitcoin_Notifications/bitcoin_notifications/ifttt_key.txt", 'r') as file:
+    ifttt_key = file.read()
+ifttt_webhook_url = "https://maker.ifttt.com/trigger/{}/with/key/"+ifttt_key
+print(ifttt_webhook_url)
 #Load alphavantage key and save URL
-working_dir = os.getcwd()
-with open(working_dir+"/Documents/Python_Projects/Bitcoin_Notifications/bitcoin_notifications/alpha_api_key.txt", 'r') as file:
+with open("/Users/joenelson/Documents/Python_Projects/Bitcoin_Notifications/bitcoin_notifications/alpha_api_key.txt", 'r') as file:
     alpha_key = file.read()
 bitcoin_api_url = "https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=BTC&to_currency=USD&apikey="+alpha_key
 
@@ -23,27 +19,32 @@ def get_latest_bitcoin_price():
     alphavantage.com.  No arguments, returns a 2-
     decimal place float.
     """
+
     response = requests.get(bitcoin_api_url)
     response_json = response.json()
     cur_btc_value = float(response_json['Realtime Currency Exchange Rate']['5. Exchange Rate'])
     return(round(cur_btc_value, 2))
 
 def post_webhook (event, value):
-    # payload sent to Zapier
-    data = {"value1": value}
+    payload = {"Value1": value}
     #inserts desired event
-    zap_event_url = zap_webhook_url + "/" + event
+    ifttt_event_url = ifttt_webhook_url.format(event)
+    #send http post to webhook URL
+    requests.post(ifttt_event_url, data=payload)
+    print(payload)
 
-# Request webhook previously set up on Zapier
-zap_webhook_url = zap_key
-requests.post(zap_webhook_url)
+bc_price_threshold = 10000
 
+def main(): 
 
-def __main__(): 
-    pass
+    while True:
+        price = get_latest_bitcoin_price()
+        print(price)
+
+        if float(price) > bc_price_threshold:
+            post_webhook('bitcoin_price', price)
+
+        time.sleep(30)
 
 if __name__ == "__main__":
     main()
-
-
-
